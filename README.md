@@ -14,8 +14,9 @@ The project consolidates **6 tables from CRM (3) and ERP (3) sources**, applies 
 - **Sales Info**
 
 - 
-![Table Connections](docs/Table Connections.drawio.png)
-docs/Table Connections.drawio.png
+![Table Connections](https://github.com/ojem1/mysql-data-warehouse-baraaproject/blob/main/docs/Table%20Connections.drawio.png?raw=true)
+
+
 Additionally, the project includes **data visualization** using **Tableau/Power BI** to provide insights for data-driven decision-making.
 
 ---
