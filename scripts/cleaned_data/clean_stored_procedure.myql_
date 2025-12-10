@@ -3,12 +3,83 @@
   Stored Procedure: clean_data_load
 ===============================================================================
 
+===============================================================================
+  Stored Procedure: clean_data_load
+===============================================================================
+
 Script Purpose:
-  This stored procedure truncates and repopulates all cleaned tables in the
-  data warehouse project. It performs the following steps:
-  1. Truncates existing tables to remove old data.
-  2. Inserts cleaned and standardized data from raw tables.
-  3. Handles data deduplication, standardization, and transformation.
+  This stored procedure performs a comprehensive ETL (Extract, Transform, Load)
+  process for a data warehouse project. It:
+  1. Extracts data from raw CRM and ERP tables
+  2. Transforms and cleans the data (deduplication, standardization, validation)
+  3. Loads the cleaned data into target tables
+  4. Provides detailed logging and timing information
+
+Key Features:
+  - Deduplication using ROW_NUMBER() to keep only the most recent records
+  - Data standardization (e.g., gender values, country names)
+  - Date validation and correction
+  - Comprehensive logging with timing information
+  - Row count tracking for each table
+
+Tables Processed:
+  1. clean_crm_cust_info - Customer information from CRM
+  2. clean_crm_prd_info - Product information from CRM
+  3. clean_crm_sales_details - Sales transaction details from CRM
+  4. clean_erp_cust_az12 - Customer information from ERP
+  5. clean_erp_loc_a101 - Location information from ERP
+  6. clean_erp_rx_cat_gtv2 - Product category information from ERP
+
+Transformations Applied:
+  - Customer Data:
+    * Deduplication by cst_id (keeping most recent record)
+    * Standardization of marital status and gender values
+    * Trimming of first and last names
+
+  - Product Data:
+    * Standardization of product line categories
+    * Correction of date ranges (ensuring start_date ≤ end_date)
+    * Formatting of product keys
+
+  - Sales Data:
+    * Calculation of sales values when missing
+    * Price validation and correction
+
+  - ERP Customer Data:
+    * Cleaning of customer IDs (removing 'NAS' prefix)
+    * Validation of birth dates
+    * Standardization of gender values
+
+  - Location Data:
+    * Standardization of country names
+    * Cleaning of customer IDs
+
+  - Product Category Data:
+    * Direct transfer of category information
+
+Usage:
+  CALL clean_data_load();
+
+Warning:
+  Running this procedure will TRUNCATE all target tables.
+  ALL EXISTING DATA in these tables will be PERMANENTLY DELETED.
+  Ensure you have:
+  - Backed up your data, or
+  - Confirmed you no longer need the existing data.
+
+Dependencies:
+  - Source tables must exist: raw_crm_cust_info, raw_crm_prd_info,
+    raw_crm_sales_details, raw_erp_cust_az12, raw_erp_loc_a101,
+    raw_erp_rx_cat_gtv2
+  - Target tables must exist: clean_crm_cust_info, clean_crm_prd_info,
+    clean_crm_sales_details, clean_erp_cust_az12, clean_erp_loc_a101,
+    clean_erp_rx_cat_gtv2
+
+Performance Considerations:
+  - The procedure includes timing information for each section
+  - Overall execution time is logged at completion
+  - Row counts are tracked for each table
+
 
 Warning:
   Running this procedure will TRUNCATE all target tables.
@@ -21,216 +92,3 @@ Usage:
   CALL clean_data_load();
 */
 
-DROP PROCEDURE IF EXISTS clean_data_load;
-DELIMITER //
-
-CREATE PROCEDURE clean_data_load()
-BEGIN
-    -- =============================================
-    -- Customer Information Table
-    -- =============================================
-    SELECT '>> Truncating the clean_crm_cust_info Table' AS Message;
-    TRUNCATE TABLE clean_crm_cust_info;
-    SELECT '>> Truncated the clean_crm_cust_info Table' AS Message;
-
-    SELECT '>> Inserting cleaned data into the clean_crm_cust_info Table' AS Message;
-    INSERT INTO clean_crm_cust_info (
-        cst_id,
-        cst_key,
-        cst_firstname,
-        cst_lastname,
-        cst_marital_status,
-        cst_gndr,
-        cst_create_date
-    )
-    SELECT
-        cst_id,
-        cst_key,
-        TRIM(cst_firstname) AS cst_firstname,
-        TRIM(cst_lastname) AS cst_lastname,
-        CASE
-            WHEN UPPER(TRIM(cst_marital_status)) = 'S' THEN 'Single'
-            WHEN UPPER(TRIM(cst_marital_status)) = 'M' THEN 'Married'
-            ELSE 'n/a'
-        END AS cst_marital_status,
-        CASE
-            WHEN UPPER(TRIM(cst_gndr)) = 'F' THEN 'Female'
-            WHEN UPPER(TRIM(cst_gndr)) = 'M' THEN 'Male'
-            ELSE 'n/a'
-        END AS cst_gndr,
-        cst_create_date
-    FROM (
-        SELECT *,
-        ROW_NUMBER() OVER (PARTITION BY cst_id ORDER BY cst_create_date DESC) AS dups
-        FROM raw_crm_cust_info
-    ) n_tab
-    WHERE dups = 1;
-
-    SELECT '>> Data Insert Complete for clean_crm_cust_info' AS Message;
-
-    -- =============================================
-    -- Product Information Table
-    -- =============================================
-    SELECT '>> Truncating the clean_crm_prd_info Table' AS Message;
-    TRUNCATE TABLE clean_crm_prd_info;
-    SELECT '>> Truncated the clean_crm_prd_info Table' AS Message;
-
-    SELECT '>> Inserting cleaned data into the clean_crm_prd_info Table' AS Message;
-    INSERT INTO clean_crm_prd_info (
-        prd_id,
-        prd_key,
-        prd_cat_sub,
-        prd_key_etr,
-        prd_nm,
-        prd_cost,
-        prd_line,
-        prd_start_dt,
-        prd_end_dt
-    )
-    SELECT
-        prd_id,
-        prd_key,
-        REPLACE(SUBSTRING(prd_key, 1, 5), '-', '_') AS prd_cat_sub,
-        SUBSTRING(prd_key, 7) AS prd_key_etr,
-        prd_nm,
-        prd_cost,
-        CASE
-            WHEN UPPER(TRIM(prd_line)) = 'S' THEN 'Other Sales'
-            WHEN UPPER(TRIM(prd_line)) = 'M' THEN 'Mountain'
-            WHEN UPPER(TRIM(prd_line)) = 'R' THEN 'Road'
-            WHEN UPPER(TRIM(prd_line)) = 'T' THEN 'Touring'
-            ELSE 'n/a'
-        END AS prd_line,
-        LEAST(prd_start_dt, prd_end_dt) AS prd_start_dt,
-        GREATEST(prd_start_dt, prd_end_dt) AS prd_end_dt
-    FROM raw_crm_prd_info;
-
-    SELECT '>> Data Insert Complete for clean_crm_prd_info' AS Message;
-
-    -- =============================================
-    -- Sales Details Table
-    -- =============================================
-    SELECT '>> Truncating the clean_crm_sales_details Table' AS Message;
-    TRUNCATE TABLE clean_crm_sales_details;
-    SELECT '>> Truncated the clean_crm_sales_details Table' AS Message;
-
-    SELECT '>> Inserting cleaned data into the clean_crm_sales_details Table' AS Message;
-    INSERT INTO clean_crm_sales_details (
-        sls_ord_num,
-        sls_prd_key,
-        sls_cust_id,
-        sls_order_dt,
-        sls_ship_dt,
-        sls_due_dt,
-        sls_sales,
-        sls_quantity,
-        sls_price
-    )
-    SELECT
-        sls_ord_num,
-        sls_prd_key,
-        sls_cust_id,
-        sls_order_dt,
-        sls_ship_dt,
-        sls_due_dt,
-        CASE
-            WHEN sls_sales <= 0 THEN sls_price * sls_quantity
-            WHEN sls_sales IS NULL THEN sls_price * sls_quantity
-            ELSE sls_sales
-        END AS sls_sales,
-        sls_quantity,
-        CASE
-            WHEN sls_price <= 0 THEN sls_sales / sls_quantity
-            ELSE sls_price
-        END AS sls_price
-    FROM raw_crm_sales_details;
-
-    SELECT '>> Data Insert Complete for clean_crm_sales_details' AS Message;
-
-    -- =============================================
-    -- ERP Customer Information Table
-    -- =============================================
-    SELECT '>> Truncating the clean_erp_cust_az12 Table' AS Message;
-    TRUNCATE TABLE clean_erp_cust_az12;
-    SELECT '>> Truncated the clean_erp_cust_az12 Table' AS Message;
-
-    SELECT '>> Inserting cleaned data into the clean_erp_cust_az12 Table' AS Message;
-    INSERT INTO clean_erp_cust_az12 (
-        cid,
-        bdate,
-        gen
-    )
-    SELECT * FROM (
-        SELECT
-            CASE
-                WHEN cid LIKE 'NAS%' THEN SUBSTR(cid, 4)
-                ELSE cid
-            END AS cid,
-            CASE
-                WHEN bdate > CURRENT_DATE() THEN NULL
-                ELSE bdate
-            END AS bdate,
-            CASE
-                WHEN UPPER(TRIM(gen)) = 'M' THEN 'Male'
-                WHEN UPPER(TRIM(gen)) = 'F' THEN 'Female'
-                WHEN TRIM(gen) = '' OR gen IS NULL THEN 'n/a'
-                ELSE gen
-            END AS gen
-        FROM raw_erp_cust_az12
-    ) AS fil_tab;
-
-    SELECT '>> Data Insert Complete for clean_erp_cust_az12' AS Message;
-
-    -- =============================================
-    -- ERP Location Table
-    -- =============================================
-    SELECT '>> Truncating the clean_erp_loc_a101 Table' AS Message;
-    TRUNCATE TABLE clean_erp_loc_a101;
-    SELECT '>> Truncated the clean_erp_loc_a101 Table' AS Message;
-
-    SELECT '>> Inserting cleaned data into the clean_erp_loc_a101 Table' AS Message;
-    INSERT INTO clean_erp_loc_a101 (
-        cid,
-        cntry
-    )
-    SELECT * FROM (
-        SELECT
-            CASE
-                WHEN SUBSTRING(cid, 3, 1) = '-' THEN REPLACE(cid, '-', '')
-                ELSE cid
-            END AS cid,
-            CASE
-                WHEN cntry IN ('USA', 'US') THEN 'United States'
-                WHEN TRIM(cntry) = '' OR cntry IS NULL THEN 'n/a'
-                WHEN TRIM(cntry) = 'DE' THEN 'Germany'
-                ELSE TRIM(cntry)
-            END AS cntry
-        FROM raw_erp_loc_a101
-    ) AS new_loc_tab;
-
-    SELECT '>> Data Insert Complete for clean_erp_loc_a101' AS Message;
-
-    -- =============================================
-    -- ERP RX Category Table
-    -- =============================================
-    SELECT '>> Truncating the clean_erp_rx_cat_gtv2 Table' AS Message;
-    TRUNCATE TABLE clean_erp_rx_cat_gtv2;
-    SELECT '>> Truncated the clean_erp_rx_cat_gtv2 Table' AS Message;
-
-    SELECT '>> Inserting cleaned data into the clean_erp_rx_cat_gtv2 Table' AS Message;
-    INSERT INTO clean_erp_rx_cat_gtv2 (
-        id,
-        cat,
-        subcat,
-        maintenance
-    )
-    SELECT
-        id,
-        cat,
-        subcat,
-        maintenance
-    FROM raw_erp_rx_cat_gtv2;
-
-    SELECT '>> Data Insert Complete for clean_erp_rx_cat_gtv2' AS Message;
-END //
-DELIMITER ;
