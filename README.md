@@ -6,7 +6,7 @@ Building a modern data warehouse with MySQL Workbench, including ETL processes, 
 ---
 
 ## 📌 **Welcome to the Data Warehouse and Analytics Project!**
-This project is inspired by **[Data with Baraa](https://www.youtube.com/c/DataWithBaraa)** and demonstrates a **comprehensive data warehousing, cleaning, standardization, and advanced analytics** solution. It follows **industry best practices** and is designed to provide **actionable business intelligence** for a bicycle business.
+This project is inspired by **Data with Baraa** and demonstrates a **comprehensive data warehousing, cleaning, standardization, and advanced analytics** solution. It follows **industry best practices** and is designed to provide **actionable business intelligence** for a bicycle business.
 
 The project consolidates **6 tables from CRM (3) and ERP (3) sources**, applies **data manipulation and standardization**, and creates **3 consolidated tables** for:
 - **Customer Info**
