@@ -104,9 +104,9 @@ This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) f
 ## 🤝 **Connect With Me**
 Let’s connect and discuss data, analytics, or anything tech-related!
 
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue)](https://www.linkedin.com/in/your-profile)
-[![GitHub](https://img.shields.io/badge/GitHub-Follow-black)](https://github.com/your-username)
-[![Email](https://img.shields.io/badge/Email-Contact-red)](mailto:your-email@example.com)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue)](https://www.linkedin.com/in/oje-ebhota-65592246/)
+[![GitHub](https://img.shields.io/badge/GitHub-Follow-black)](https://github.com/ojem1)
+[![Email](https://img.shields.io/badge/Email-Contact-red)](mailto:ojem1@yahoo.com)
 
 ---
 
