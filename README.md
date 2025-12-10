@@ -11,9 +11,8 @@ This project is inspired by **[Data with Baraa](https://www.youtube.com/c/DataWi
 The project consolidates **6 tables from CRM (3) and ERP (3) sources**, applies **data manipulation and standardization**, and creates **3 consolidated tables** for:
 - **Customer Info**
 - **Product Info**
-- **Sales Info**
+- **Sales Info**- 
 
-- 
 ![Table Connections](https://github.com/ojem1/mysql-data-warehouse-baraaproject/blob/main/docs/Table%20Connections.drawio.png?raw=true)
 
 
