@@ -1,1 +1,198 @@
+/*
+===============================================================================
+  Refined Data Layer Views
+===============================================================================
+
+Script Purpose:
+  This script creates dimension and fact views for the refined data layer.
+  These views implement a star schema design for analytical reporting.
+
+  The refined layer sits between the cleaned data layer and presentation layer,
+  providing a dimensional model optimized for analysis.
+
+Key Features:
+  - Star schema implementation with dimension and fact tables
+  - Surrogate keys for all dimensions
+  - Standardized attribute values
+  - Joins between cleaned data sources
+  - Business-friendly column naming
+
+Views Created:
+  1. dim_refined_cust_details - Customer dimension with all attributes
+  2. dim_prefined_product_details - Product dimension with hierarchy (Note: Typo in name)
+  3. fact_refined_sales_details - Sales fact table with foreign keys
+
+Data Model:
+  - Customer Dimension: Contains all customer attributes
+  - Product Dimension: Contains product hierarchy and attributes
+  - Sales Fact: Contains transactional data linked to dimensions
+
+Usage:
+  Run this script in your MySQL environment to create the refined layer views.
+  These views can then be used for reporting and analysis.
+
+  Example queries:
+    -- Get sales by customer and product
+    SELECT
+        cu.first_name,
+        cu.last_name,
+        pd.product_name,
+        SUM(f.sales) AS total_sales
+    FROM fact_refined_sales_details f
+    JOIN dim_refined_cust_details cu ON f.customer_id = cu.customer_key
+    JOIN dim_prefined_product_details pd ON f.product_key = pd.product_key
+    GROUP BY cu.customer_key, pd.product_key;
+
+WARNING:
+  These views reference existing cleaned tables. Ensure all source tables exist:
+    - clean_crm_cust_info
+    - clean_erp_cust_az12
+    - clean_erp_loc_a101
+    - clean_crm_prd_info
+    - clean_erp_rx_cat_gtv2
+    - clean_crm_sales_details
+
+  The views will automatically reflect any changes in the underlying data.
+*/
+
+-- Customer Dimension View
+DROP VIEW IF EXISTS dim_refined_cust_details;
+CREATE VIEW dim_refined_cust_details AS
+SELECT
+    ROW_NUMBER() OVER (ORDER BY c.cst_id) AS customer_key,
+    c.cst_id AS customer_id,
+    c.cst_key AS customer_number,
+    c.cst_firstname AS first_name,
+    c.cst_lastname AS last_name,
+    c.cst_marital_status AS marital_status,
+    CASE WHEN c.cst_gndr != 'n/a' THEN c.cst_gndr
+         ELSE COALESCE(p.gen, 'n/a')
+    END AS gender,
+    p.bdate AS birthday,
+    l.cntry AS country
+FROM clean_crm_cust_info c
+JOIN clean_erp_cust_az12 p ON c.cst_key = p.cid
+JOIN clean_erp_loc_a101 l ON c.cst_key = l.cid;
+
+-- Product Dimension View
+-- Note: There appears to be a typo in the view name "prefined" should likely be "refined"
+DROP VIEW IF EXISTS dim_prefined_product_details;
+CREATE VIEW dim_prefined_product_details AS
+SELECT
+    ROW_NUMBER() OVER (ORDER BY prd.prd_id) AS product_key,
+    prd.prd_id AS product_id,
+    prd.prd_key_etr AS product_number,
+    prd.prd_cat_sub AS category_id,
+    cat.cat AS category,
+    cat.subcat AS sub_category,
+    prd.prd_nm AS product_name,
+    prd.prd_cost AS product_cost,
+    prd.prd_line AS product_line,
+    prd.prd_start_dt AS product_start_date,
+    prd.prd_end_dt AS product_end_date
+FROM clean_crm_prd_info prd
+JOIN clean_erp_rx_cat_gtv2 cat ON prd.prd_cat_sub = cat.id;
+
+-- Sales Fact View
+DROP VIEW IF EXISTS fact_refined_sales_details;
+CREATE VIEW fact_refined_sales_details AS
+SELECT
+    ROW_NUMBER() OVER (ORDER BY sls_order_dt) AS sales_key,
+    cu.customer_key AS customer_id,
+    pd.product_key AS product_key,
+    sd.sls_order_dt AS order_date,
+    sd.sls_ship_dt AS shipping_date,
+    sd.sls_due_dt AS due_date,
+    sd.sls_price AS price,
+    sd.sls_quantity AS quantity,
+    sd.sls_sales AS sales
+FROM clean_crm_sales_details sd
+JOIN dim_refined_cust_details AS cu ON cu.customer_id = sd.sls_cust_id
+JOIN dim_prefined_product_details AS pd ON pd.product_number = sd.sls_prd_key;
+
+/*
+Implementation Notes:
+  1. The customer dimension combines data from CRM customer info, ERP customer data,
+     and ERP location data to create a comprehensive customer profile.
+
+  2. The product dimension joins product information with category hierarchy
+     to enable product analysis by category and subcategory.
+
+  3. The sales fact table links to both dimensions using surrogate keys,
+     enabling star schema queries.
+
+  4. All views use ROW_NUMBER() to generate surrogate keys that provide
+     consistent identifiers for dimension members.
+
+  5. The views implement data quality improvements:
+     - Standardized gender values with fallback logic
+     - Consistent naming conventions
+     - Proper handling of NULL values
+
+Maintenance:
+  To modify these views:
+  1. Test changes with SELECT statements first
+  2. Use DROP VIEW IF EXISTS before recreating
+  3. Document any changes to the data model
+
+Dependencies:
+  All source tables must exist and contain valid data.
+  The views assume referential integrity between the cleaned tables.
+*/
+
+DROP VIEW IF EXISTS dim_refined_cust_details; 
+CREATE VIEW dim_refined_cust_details AS 
+SELECT 
+ROW_NUMBER () OVER (ORDER BY c.cst_id) AS customer_key,
+c.cst_id AS customer_id,
+c.cst_key AS customer_number,
+c.cst_firstname AS first_name,
+c.cst_lastname AS last_name,
+c.cst_marital_status AS marital_status,
+CASE WHEN c.cst_gndr != 'n/a' THEN c.cst_gndr
+    ELSE COALESCE(p.gen, 'n/a')
+END gender,
+p.bdate As birthday,
+l.cntry AS country
+FROM clean_crm_cust_info c
+JOIN clean_erp_cust_az12 p
+ON c.cst_key = p.cid
+JOIN clean_erp_loc_a101 l
+ON c.cst_key = l.cid;
+
+DROP VIEW IF EXISTS dim_prefined_product_details;
+CREATE VIEW dim_prefined_product_details AS
+SELECT
+ROW_NUMBER() OVER (ORDER BY prd.prd_id) AS product_key,
+prd.prd_id AS product_id,
+prd.prd_key_etr AS product_number,
+prd.prd_cat_sub AS category_id,
+cat.cat AS category,
+cat.subcat AS sub_category,
+prd.prd_nm AS product_name,
+prd.prd_cost AS product_cost,
+prd_line AS product_line,
+prd.prd_start_dt AS product_start_date,
+prd.prd_end_dt AS product_end_date
+FROM clean_crm_prd_info prd
+JOIN clean_erp_rx_cat_gtv2 cat
+ON prd.prd_cat_sub = cat.id;
+
+DROP VIEW IF EXISTS fact_refined_sales_details;
+CREATE VIEW fact_refined_sales_details AS
+SELECT 
+ROW_NUMBER() OVER (ORDER BY sls_order_dt) AS sales_key, 
+cu.customer_key AS customer_id,
+pd.product_key AS product_key,
+sd.sls_order_dt AS order_date,
+sd.sls_ship_dt AS shipping_date,
+sd.sls_due_dt AS due_date,
+sd.sls_price AS price,
+sd.sls_quantity AS quantity,
+sd.sls_sales AS sales 
+FROM clean_crm_sales_details sd
+JOIN dim_refined_cust_details AS cu
+ON cu.customer_id = sd.sls_cust_id
+JOIN dim_prefined_product_details as pd
+ON pd.product_number = sd.sls_prd_key;
 
