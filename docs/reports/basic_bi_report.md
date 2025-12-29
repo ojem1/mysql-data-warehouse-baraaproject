@@ -4,7 +4,7 @@
 ---
 
 ## **1. Executive Summary**
-This report presents key insights from our analysis of customer, product, and sales data covering **December 29, 2010 to January 28, 2014**.
+This report presents key insights from our analysis of customer, product, and sales data covering **December 29, 2010 to January 28, 2014**. It contains a basic analysis of the data.
 
 ### **Key Findings**
 - **$68.3M** in total revenue from **97,926 orders**
