@@ -4,7 +4,7 @@
 
 **Report Type:** Advanced Analytical Follow-up
 **Date:** December 2024
-**Analyst:** [Oje Ebhota](your-portfolio-link)
+**Analyst:** [Oje Ebhota](https://sites.google.com/view/oje-ebhota-data-portfolio/home)
 **Tools:** MySQL Workbench 8.0, Advanced SQL Analytics
 
 ---
