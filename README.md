@@ -112,9 +112,7 @@ Let’s connect and discuss data, analytics, or anything tech-related!
 
 ## 🙌 **Acknowledgments**
 - **Data with Baraa** for the inspiration and tutorials.
-- **MySQL** and **Tableau/Power BI** communities for their resources.
-- **Open-source contributors** for their tools and libraries.
-
+- **Alex the Analayst** Also for his insightful tutorials
 ---
 
 ## 🚀 **Get Started**
