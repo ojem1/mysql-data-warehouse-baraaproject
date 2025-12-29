@@ -102,7 +102,7 @@ This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) f
 ---
 
 ## 🤝 **Connect With Me**
-Hey, I am Oje Ebhota. Let’s connect and discuss data, analytics, or anything tech-related!
+Hey, I am [Oje Ebhota](https://sites.google.com/view/oje-ebhota-data-portfolio/home)  and I love working with data Let’s connect and discuss data, analytics, or anything tech-related!
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue)](https://www.linkedin.com/in/oje-ebhota-65592246/)
 [![GitHub](https://img.shields.io/badge/GitHub-Follow-black)](https://github.com/ojem1)
